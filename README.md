@@ -22,7 +22,7 @@ docker run --name ecommerce-db \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=1002 \
   -p 5432:5432 \
-  -d postgres:13
+  -d postgres:17
 ```
 
 
@@ -38,7 +38,7 @@ docker run --name ecommerce-keycloak \
   -e KEYCLOAK_ADMIN=admin \
   -e KEYCLOAK_ADMIN_PASSWORD=admin \
   -v $(pwd)/keycloak:/opt/keycloak/data/import \
-  quay.io/keycloak/keycloak:23.0.4 \
+  quay.io/keycloak/keycloak:26.0.6 \
   start-dev --import-realm
 ```
 
