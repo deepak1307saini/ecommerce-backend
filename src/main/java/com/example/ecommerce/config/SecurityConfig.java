@@ -39,7 +39,6 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
-//                        .requestMatchers("/api/auth/sign-out").hasRole(RoleEnum.USER.toString())
                         .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
                         .requestMatchers("/api/orders", "/api/favorites").hasAnyAuthority(RoleEnum.USER.toString(), RoleEnum.TENANT_ADMIN.toString(), RoleEnum.PLATFORM_ADMIN.toString()) // Changed to hasAuthority
                         .requestMatchers("/api/admin/**").hasAuthority(RoleEnum.PLATFORM_ADMIN.toString())

@@ -168,6 +168,8 @@ public class UserServiceImpl implements UserService {
         dto.setEmail(user.getEmail());
         dto.setTenantId(user.getTenantId());
         dto.setMobileNumber(user.getMobileNumber());
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
         return dto;
     }
 
