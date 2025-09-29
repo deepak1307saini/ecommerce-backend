@@ -6,6 +6,7 @@ import com.example.ecommerce.dto.UserDTO;
 import com.example.ecommerce.enums.RoleEnum;
 import com.example.ecommerce.service.TenantService;
 import com.example.ecommerce.service.UserService;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +30,7 @@ public class TenantController {
 
     @PostMapping("/tenants")
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
-    public ResponseEntity<TenantDTO> createTenant(@RequestBody TenantRequest request) {
+    public ResponseEntity<TenantDTO> createTenant(@Valid @RequestBody TenantRequest request) {
         log.info("Creating tenant: {}", request.getName());
         TenantDTO tenant = tenantService.createTenant(request.getName());
         log.info("Tenant created with ID: {}", tenant.getId());
@@ -58,7 +59,7 @@ public class TenantController {
 
     @PostMapping("/tenant-admin")
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
-    public ResponseEntity<Void> createTenantAdmin(@RequestBody UserDTO request) {
+    public ResponseEntity<Void> createTenantAdmin(@Valid @RequestBody UserDTO request) {
         if(isNull(request.getTenantId())) throw new BadRequestException("tenantId can't be null");
         log.info("Creating tenant admin: {}", request.getUsername());
         userService.registerUser(request, RoleEnum.TENANT_ADMIN.toString());

@@ -1,5 +1,3 @@
-// Updated OrderServiceImpl (modified to include items and createdAt in getOrderHistory and toDTO)
-
 package com.example.ecommerce.service.impl;
 
 import com.example.ecommerce.dto.OrderDTO;
@@ -7,6 +5,7 @@ import com.example.ecommerce.dto.OrderItemDTO;
 import com.example.ecommerce.entity.Order;
 import com.example.ecommerce.entity.OrderItem;
 import com.example.ecommerce.entity.Product;
+import com.example.ecommerce.exception.InsufficientStockException;
 import com.example.ecommerce.repository.OrderItemRepository;
 import com.example.ecommerce.repository.OrderRepository;
 import com.example.ecommerce.repository.ProductRepository;
@@ -35,38 +34,9 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderDTO createOrder(Long userId, List<OrderItemDTO> items) {
-        log.info("Creating order for user ID: {}", userId);
-        double totalAmount = 0;
-        int totalQuantity = 0;
+        Order savedOrder = saveOrder(userId, items);
 
-        for (OrderItemDTO itemDTO : items) {
-            Product product = productRepository.findById(itemDTO.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found"));
-            if (itemDTO.getQuantity() > product.getAvailableQuantity()) {
-                log.warn("Insufficient quantity for product: {}", product.getName());
-                throw new RuntimeException("Insufficient quantity for product: " + product.getName());
-            }
-            itemDTO.setPrice(product.getPrice());
-            product.setAvailableQuantity(product.getAvailableQuantity() - itemDTO.getQuantity());
-            productRepository.save(product);
-            totalQuantity += itemDTO.getQuantity();
-            totalAmount += itemDTO.getQuantity() * product.getPrice();
-        }
-
-        Order order = new Order();
-        order.setUserId(userId);
-        order.setTotalQuantity(totalQuantity);
-        order.setTotalAmount(totalAmount);
-        Order savedOrder = orderRepository.save(order);
-
-        List<OrderItem> savedItems = items.stream().map(itemDTO -> {
-            OrderItem item = new OrderItem();
-            item.setOrderId(savedOrder.getId());
-            item.setProductId(itemDTO.getProductId());
-            item.setQuantity(itemDTO.getQuantity());
-            item.setPrice(itemDTO.getPrice());
-            return orderItemRepository.save(item);
-        }).collect(Collectors.toList());
+        List<OrderItem> savedItems = getSavedItems(items, savedOrder);
 
         OrderDTO orderDTO = toDTO(savedOrder);
         orderDTO.setItems(savedItems.stream().map(this::toItemDTO).collect(Collectors.toList()));
@@ -103,24 +73,42 @@ public class OrderServiceImpl implements OrderService {
         return toDTO(order);
     }
 
-//    @Transactional(readOnly = true)
-//    public Page<OrderDTO> getOrdersByTenant(String tenantName, Pageable pageable) {
-//
-//        Tenant tenant = tenantRepository.findByName(tenantName)
-//                .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantName));
-//        return orderRepository.findByItemProductTenantName(tenantName, pageable)
-//                .map(order -> toDTO(order, tenant.getId()));
-//    }
-//    @Override
-//    public void updateStatus(Long id, String status, String tenantName) {
-//        Order order = orderRepository.findById(id)
-//                .orElseThrow(() -> new CustomException("Order not found", HttpStatus.NOT_FOUND));
-//        if (!order.getItems().stream().anyMatch(i -> i.getProduct().getTenant().getName().equals(tenantName))) {
-//            throw new CustomException("Unauthorized to update this order", HttpStatus.FORBIDDEN);
-//        }
-//        order.setStatus(status);
-//        orderRepository.save(order);
-//    }
+    private List<OrderItem> getSavedItems(List<OrderItemDTO> items, Order savedOrder) {
+        return items.stream().map(itemDTO -> {
+            OrderItem item = new OrderItem();
+            item.setOrderId(savedOrder.getId());
+            item.setProductId(itemDTO.getProductId());
+            item.setQuantity(itemDTO.getQuantity());
+            item.setPrice(itemDTO.getPrice());
+            return orderItemRepository.save(item);
+        }).collect(Collectors.toList());
+    }
+
+    private Order saveOrder(Long userId, List<OrderItemDTO> items) {
+        log.info("Creating order for user ID: {}", userId);
+        double totalAmount = 0;
+        int totalQuantity = 0;
+
+        for (OrderItemDTO itemDTO : items) {
+            Product product = productRepository.findById(itemDTO.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found"));
+            if (itemDTO.getQuantity() > product.getAvailableQuantity()) {
+                log.warn("Insufficient quantity for product: {}", product.getName());
+                throw new InsufficientStockException("Insufficient quantity for product: " + product.getName());
+            }
+            itemDTO.setPrice(product.getPrice());
+            product.setAvailableQuantity(product.getAvailableQuantity() - itemDTO.getQuantity());
+            productRepository.save(product);
+            totalQuantity += itemDTO.getQuantity();
+            totalAmount += itemDTO.getQuantity() * product.getPrice();
+        }
+
+        Order order = new Order();
+        order.setUserId(userId);
+        order.setTotalQuantity(totalQuantity);
+        order.setTotalAmount(totalAmount);
+        return orderRepository.save(order);
+    }
 
     private OrderDTO toDTO(Order order) {
         OrderDTO dto = new OrderDTO();

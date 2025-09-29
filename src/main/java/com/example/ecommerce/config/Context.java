@@ -3,9 +3,9 @@ package com.example.ecommerce.config;
 public class Context {
     private static final ThreadLocal<Context> contextHolder = new ThreadLocal<>();
 
-    private final Long userId; // Database user ID (e.g., 2)
-    private final String keycloakId; // JWT sub (e.g., 9586d656-74f5-45fd-8acb-bb7ea1b9f0d8)
-    private final String userRole; // Primary role (e.g., USER)
+    private final Long userId;
+    private final String keycloakId;
+    private final String userRole;
 
     private final String userName;
     private final Long tenantId;

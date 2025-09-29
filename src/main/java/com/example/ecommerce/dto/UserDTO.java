@@ -25,6 +25,7 @@ public class UserDTO {
     @NotBlank(message = "Email is required")
     private String email;
 
+    @NotBlank
     private String password;
 
     private Long tenantId;

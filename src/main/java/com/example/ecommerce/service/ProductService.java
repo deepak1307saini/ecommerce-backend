@@ -21,7 +21,5 @@ public interface ProductService {
 
     void delete(Long id, String tenantName);
 
-    void checkTenantAccess(Long tenantId);
-
     ProductDTO getProductById(Long productId);
 }

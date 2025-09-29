@@ -4,6 +4,7 @@ import com.example.ecommerce.config.Context;
 import com.example.ecommerce.dto.OrderDTO;
 import com.example.ecommerce.dto.OrderRequest;
 import com.example.ecommerce.service.OrderService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -21,7 +22,7 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping("/orders")
-    public ResponseEntity<OrderDTO> createOrder(@RequestBody OrderRequest request) {
+    public ResponseEntity<OrderDTO> createOrder(@Valid @RequestBody OrderRequest request) {
         Long userId = Context.getUserId();
         log.info("Creating order for user ID: {}", userId);
         OrderDTO order = orderService.createOrder(userId, request.getItems());

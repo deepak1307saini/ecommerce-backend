@@ -8,8 +8,6 @@ import com.example.ecommerce.entity.User;
 public interface UserService {
     UserDTO registerUser(UserDTO userDTO, String roleName);
 
-    UserDTO createUser(String username, String email, String roleName, Long tenantId);
-
     SignInResponse signIn(SignInRequest request);
 
     User getCurrentUser();

@@ -112,20 +112,25 @@ public class KeyClockUserServiceImpl implements KeyClockUserService {
         try {
             UserResource userResource = getUserResource(userId);
             RolesResource rolesResource = getRolesResource();
-            RoleRepresentation representation;
-            try {
-                representation = rolesResource.get(roleName).toRepresentation();
-                log.info("Assigning role {} (ID: {}) to user ID {}", roleName, representation.getId(), userId);
-            } catch (Exception e) {
-                log.error("Role {} not found in realm {}", roleName, realm, e);
-                throw new RuntimeException("Role " + roleName + " not found in Keycloak");
-            }
+            RoleRepresentation representation = getRoleRepresentation(userId, roleName, rolesResource);
             userResource.roles().realmLevel().add(Collections.singletonList(representation));
             log.info("Role {} successfully assigned to user ID {}", roleName, userId);
         } catch (Exception e) {
             log.error("Error assigning role {} to user ID {}: {}", roleName, userId, e.getMessage(), e);
             throw new RuntimeException("Error assigning role " + roleName + " to user", e);
         }
+    }
+
+    private RoleRepresentation getRoleRepresentation(String userId, String roleName, RolesResource rolesResource) {
+        RoleRepresentation representation;
+        try {
+            representation = rolesResource.get(roleName).toRepresentation();
+            log.info("Assigning role {} (ID: {}) to user ID {}", roleName, representation.getId(), userId);
+        } catch (Exception e) {
+            log.error("Role {} not found in realm {}", roleName, realm, e);
+            throw new RuntimeException("Role " + roleName + " not found in Keycloak");
+        }
+        return representation;
     }
 
     private RolesResource getRolesResource() {

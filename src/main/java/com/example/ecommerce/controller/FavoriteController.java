@@ -4,12 +4,12 @@ import com.example.ecommerce.config.Context;
 import com.example.ecommerce.dto.FavoriteDTO;
 import com.example.ecommerce.dto.FavoriteRequest;
 import com.example.ecommerce.service.FavoriteService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,7 +21,7 @@ public class FavoriteController {
     private final FavoriteService favoriteService;
 
     @PostMapping
-    public ResponseEntity<FavoriteDTO> addFavorite(@RequestBody FavoriteRequest request) {
+    public ResponseEntity<FavoriteDTO> addFavorite(@Valid @RequestBody FavoriteRequest request) {
         Long userId = Context.getUserId();
         log.info("Adding favorite for user ID: {} and product ID: {}", userId, request.getProductId());
         FavoriteDTO favorite = favoriteService.addFavorite(userId, request.getProductId());
@@ -30,7 +30,7 @@ public class FavoriteController {
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> removeFavorite(@RequestBody FavoriteRequest request) {
+    public ResponseEntity<Void> removeFavorite(@Valid @RequestBody FavoriteRequest request) {
         Long userId = Context.getUserId();
         log.info("Removing favorite for user ID: {} and product ID: {}", userId, request.getProductId());
         favoriteService.removeFavorite(userId, request.getProductId());

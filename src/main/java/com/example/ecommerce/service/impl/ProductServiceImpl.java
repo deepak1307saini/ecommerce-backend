@@ -7,6 +7,7 @@ import com.example.ecommerce.repository.ProductRepository;
 import com.example.ecommerce.repository.TenantRepository;
 import com.example.ecommerce.service.ProductService;
 import com.example.ecommerce.service.UserService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -26,7 +27,6 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final TenantRepository tenantRepository;
-    private final UserService userService;
 
     @Override
     public Page<ProductDTO> getAll(Pageable pageable) {
@@ -49,7 +49,6 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Page<ProductDTO> getByTenant(String tenantName, Pageable pageable) {
         Long tenantId = getTenantIdByName(tenantName);
-        checkTenantAccess(tenantId);
         log.info("Fetching products for tenant: {}", tenantName);
         return productRepository.findByTenantId(tenantId, pageable).map(this::toDTO);
     }
@@ -57,7 +56,6 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductDTO save(ProductDTO productDTO, String tenantName) throws IOException {
         Long tenantId = getTenantIdByName(tenantName);
-        checkTenantAccess(tenantId);
         Product product = toEntity(productDTO);
         product.setTenantId(tenantId);
 
@@ -67,9 +65,9 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional
     public ProductDTO update(ProductDTO updatedProductDTO, String tenantName) throws IOException {
         Long tenantId = getTenantIdByName(tenantName);
-        checkTenantAccess(tenantId);
         Product product = productRepository.findById(updatedProductDTO.getId())
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         if (!product.getTenantId().equals(tenantId)) {
@@ -90,7 +88,6 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public void delete(Long id, String tenantName) {
         Long tenantId = getTenantIdByName(tenantName);
-        checkTenantAccess(tenantId);
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         if (!product.getTenantId().equals(tenantId)) {
@@ -101,29 +98,18 @@ public class ProductServiceImpl implements ProductService {
         log.info("Deleted product ID: {}", id);
     }
 
+    @Override
+    public ProductDTO getProductById(Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found with ID: " + productId));
+
+        return toDTO(product);
+    }
+
     public Long getTenantIdByName(String name) {
         return tenantRepository.findByName(name)
                 .orElseThrow(() -> new RuntimeException("Tenant not found"))
                 .getId();
-    }
-
-
-    @Override
-    public void checkTenantAccess(Long tenantId) {
-        User user = userService.getCurrentUser();
-        if (user.getTenantId() != null && !user.getTenantId().equals(tenantId)) {
-            log.warn("Unauthorized tenant access for user: {}", user.getUsername());
-            throw new RuntimeException("Unauthorized tenant access");
-        }
-    }
-
-    private String saveImage(MultipartFile file, String tenantName, String productName) throws IOException {
-        String uploadDir = "uploads/" + tenantName + "/";
-        String fileName = productName.replaceAll("\\s+", "_") + "_" + System.currentTimeMillis() + ".jpg";
-        Path path = Paths.get(uploadDir + fileName);
-        Files.createDirectories(path.getParent());
-        Files.write(path, file.getBytes());
-        return "/images/" + tenantName + "/" + fileName;
     }
 
     private ProductDTO toDTO(Product product) {
@@ -148,13 +134,5 @@ public class ProductServiceImpl implements ProductService {
         product.setThumbnail(dto.getThumbnail());
         product.setDescription(dto.getDescription());
         return product;
-    }
-
-    @Override
-    public ProductDTO getProductById(Long productId) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found with ID: " + productId));
-
-        return toDTO(product);
     }
 }

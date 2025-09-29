@@ -2,6 +2,7 @@ package com.example.ecommerce.controller;
 
 import com.example.ecommerce.dto.ProductDTO;
 import com.example.ecommerce.service.ProductService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -47,7 +48,7 @@ public class ProductController {
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ResponseEntity<ProductDTO> addProduct(
             @PathVariable String tenantName,
-            @RequestPart("product") ProductDTO productDTO) throws IOException {
+            @Valid @RequestPart("product") ProductDTO productDTO) throws IOException {
         log.info("Adding product for tenant: {}", tenantName);
         ProductDTO savedProduct = productService.save(productDTO, tenantName);
         log.info("Product added: {}", productDTO.getName());
@@ -59,7 +60,7 @@ public class ProductController {
     public ResponseEntity<ProductDTO> updateProduct(
             @PathVariable String tenantName,
             @PathVariable Long id,
-            @RequestPart("product") ProductDTO productDTO) throws IOException {
+            @Valid @RequestPart("product") ProductDTO productDTO) throws IOException {
         log.info("Updating product ID: {} for tenant: {}", id, tenantName);
         productDTO.setId(id);
         ProductDTO updatedProduct = productService.update(productDTO, tenantName);

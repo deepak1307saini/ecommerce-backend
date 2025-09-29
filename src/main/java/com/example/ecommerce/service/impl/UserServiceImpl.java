@@ -67,22 +67,16 @@ public class UserServiceImpl implements UserService {
     private String clientSecret;
 
     @Override
+    @Transactional
     public UserDTO registerUser(UserDTO userDTO, @NotBlank String roleName) {
         log.info("Registering user: {}", userDTO.getUsername());
-//
         Response response = keyClockUserService.createUser(userDTO, roleName);
 
         String keycloakUserId = response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
         log.debug("Created Keycloak user with ID: {}", keycloakUserId);
 
         // Save user in database
-        User user = new User();
-        user.setUsername(userDTO.getUsername());
-        user.setEmail(userDTO.getEmail());
-        user.setKeycloakUserId(keycloakUserId);
-        user.setFirstName(userDTO.getFirstName());
-        user.setLastName(userDTO.getLastName());
-        user.setMobileNumber(userDTO.getMobileNumber());
+        User user = toEntity(userDTO, keycloakUserId);
 
         Long tenantId = userDTO.getTenantId();
         if (nonNull(tenantId) && roleName.equals(RoleEnum.TENANT_ADMIN.toString())) {
@@ -100,45 +94,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional
-    public UserDTO createUser(String username, String email, String roleName, Long tenantId) {
-        log.info("Creating user: {}", username);
-        User user = new User();
-        user.setUsername(username);
-        user.setEmail(email);
-        if (nonNull(tenantId)) {
-            tenantRepository.findById(tenantId)
-                    .orElseThrow(() -> new RuntimeException("Tenant not found"));
-            user.setTenantId(tenantId);
-            log.debug("Assigned tenant ID {} to user {}", tenantId, username);
-        }
-        Role role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new RuntimeException("Role not found"));
-        user.getRoles().add(role);
-        User savedUser = userRepository.save(user);
-        log.info("User created with ID: {}", savedUser.getId());
-        return toDTO(savedUser);
-    }
-
-    @Override
     public SignInResponse signIn(SignInRequest request) {
         log.info("Attempting sign-in for user: {}", request.getUsername());
         String url = String.format("%s/realms/%s/protocol/openid-connect/token", keycloakServerUrl, realm);
 
-        // Set headers
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        // Create form data
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("grant_type", "password");
-        formData.add("client_id", clientId);
-        formData.add("client_secret", clientSecret);
-        formData.add("username", request.getUsername());
-        formData.add("password", request.getPassword());
-
-        // Create request entity
-        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
+        HttpEntity<MultiValueMap<String, String>> requestEntity = getMultiValueMapHttpEntity(request);
 
         // Send request
         AccessTokenResponse tokenResponse = restTemplate.postForObject(url, requestEntity, AccessTokenResponse.class);
@@ -160,17 +120,6 @@ public class UserServiceImpl implements UserService {
                 .roles(roles)
                 .tenant(tenantDTO)
                 .build();
-    }
-    private UserDTO toDTO(User user) {
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setUsername(user.getUsername());
-        dto.setEmail(user.getEmail());
-        dto.setTenantId(user.getTenantId());
-        dto.setMobileNumber(user.getMobileNumber());
-        dto.setFirstName(user.getFirstName());
-        dto.setLastName(user.getLastName());
-        return dto;
     }
 
     @Override
@@ -201,5 +150,46 @@ public class UserServiceImpl implements UserService {
             log.error("Failed to logout user with keycloakId: {}", keycloakId, e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to logout user", e);
         }
+    }
+
+    private HttpEntity<MultiValueMap<String, String>> getMultiValueMapHttpEntity(SignInRequest request) {
+        // Set headers
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        // Create form data
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("grant_type", "password");
+        formData.add("client_id", clientId);
+        formData.add("client_secret", clientSecret);
+        formData.add("username", request.getUsername());
+        formData.add("password", request.getPassword());
+
+        // Create request entity
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
+        return requestEntity;
+    }
+
+    private UserDTO toDTO(User user) {
+        UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setTenantId(user.getTenantId());
+        dto.setMobileNumber(user.getMobileNumber());
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        return dto;
+    }
+
+    private static User toEntity(UserDTO userDTO, String keycloakUserId) {
+        User user = new User();
+        user.setUsername(userDTO.getUsername());
+        user.setEmail(userDTO.getEmail());
+        user.setKeycloakUserId(keycloakUserId);
+        user.setFirstName(userDTO.getFirstName());
+        user.setLastName(userDTO.getLastName());
+        user.setMobileNumber(userDTO.getMobileNumber());
+        return user;
     }
 }

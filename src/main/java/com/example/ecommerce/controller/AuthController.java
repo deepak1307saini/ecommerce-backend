@@ -30,7 +30,7 @@ public class AuthController {
     }
 
     @PostMapping("/sign-in")
-    public ResponseEntity<SignInResponse> signIn(@RequestBody SignInRequest request) {
+    public ResponseEntity<SignInResponse> signIn(@Valid @RequestBody SignInRequest request) {
         log.info("Processing sign-in request for user: {}", request.getUsername());
         return ResponseEntity.ok(userService.signIn(request));
     }
