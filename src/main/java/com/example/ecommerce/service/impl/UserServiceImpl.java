@@ -15,13 +15,14 @@ import com.example.ecommerce.service.KeyClockUserService;
 import com.example.ecommerce.service.TenantService;
 import com.example.ecommerce.service.UserService;
 import jakarta.transaction.Transactional;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.representations.AccessTokenResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -43,8 +44,8 @@ import static java.util.Objects.nonNull;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class UserServiceImpl implements UserService {
+    private final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -68,12 +69,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserDTO registerUser(UserDTO userDTO, @NotBlank String roleName) {
-        log.info("Registering user: {}", userDTO.getUsername());
+    public UserDTO registerUser(@Valid UserDTO userDTO, String roleName) {
+        logger.info("Registering user: {}", userDTO.getUsername());
         Response response = keyClockUserService.createUser(userDTO, roleName);
 
         String keycloakUserId = response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
-        log.debug("Created Keycloak user with ID: {}", keycloakUserId);
+        logger.debug("Created Keycloak user with ID: {}", keycloakUserId);
 
         // Save user in database
         User user = toEntity(userDTO, keycloakUserId);
@@ -83,19 +84,20 @@ public class UserServiceImpl implements UserService {
             tenantRepository.findById(tenantId)
                     .orElseThrow(() -> new RuntimeException("Tenant not found"));
             user.setTenantId(tenantId);
-            log.debug("Assigned tenant ID {} to user {}", tenantId, userDTO.getUsername());
+            logger.debug("Assigned tenant ID {} to user {}", tenantId, userDTO.getUsername());
         }
+        //Can be cashed
         Role role = roleRepository.findByName(roleName)
                 .orElseThrow(() -> new RuntimeException("Role not found"));
         user.getRoles().add(role);
         User savedUser = userRepository.save(user);
-        log.info("User created with ID: {}", savedUser.getId());
+        logger.info("User created with ID: {}", savedUser.getId());
         return toDTO(savedUser);
     }
 
     @Override
     public SignInResponse signIn(SignInRequest request) {
-        log.info("Attempting sign-in for user: {}", request.getUsername());
+        logger.info("Attempting sign-in for user: {}", request.getUsername());
         String url = String.format("%s/realms/%s/protocol/openid-connect/token", keycloakServerUrl, realm);
 
         HttpEntity<MultiValueMap<String, String>> requestEntity = getMultiValueMapHttpEntity(request);
@@ -103,7 +105,7 @@ public class UserServiceImpl implements UserService {
         // Send request
         AccessTokenResponse tokenResponse = restTemplate.postForObject(url, requestEntity, AccessTokenResponse.class);
         if (isNull(tokenResponse.getToken())) {
-            log.error("Authentication failed for user: {}", request.getUsername());
+            logger.error("Authentication failed for user: {}", request.getUsername());
             throw new RuntimeException("Authentication failed");
         }
         User user = userRepository.findByUsername(request.getUsername())
@@ -113,7 +115,7 @@ public class UserServiceImpl implements UserService {
         if (nonNull(user.getTenantId())) {
             tenantDTO=tenantService.getTenantById(user.getTenantId());
         }
-        log.info("Sign-in successful for user: {}", request.getUsername());
+        logger.info("Sign-in successful for user: {}", request.getUsername());
         return SignInResponse.builder()
                 .token(tokenResponse.getToken())
                 .user(toDTO(user))
@@ -134,7 +136,7 @@ public class UserServiceImpl implements UserService {
     public User getUserIdByKeycloakId(String keycloakId) {
         return userRepository.findByKeycloakUserId(keycloakId)
                 .orElseGet(() -> {
-                    log.warn("No user found for keycloakId: {}", keycloakId);
+                    logger.warn("No user found for keycloakId: {}", keycloakId);
                     return null;
                 });
     }
@@ -145,9 +147,9 @@ public class UserServiceImpl implements UserService {
         try {
             UserResource userResource = keycloak.realm(realm).users().get(keycloakId);
             userResource.logout();
-            log.info("Successfully logged out user with keycloakId: {}", keycloakId);
+            logger.info("Successfully logged out user with keycloakId: {}", keycloakId);
         } catch (Exception e) {
-            log.error("Failed to logout user with keycloakId: {}", keycloakId, e);
+            logger.error("Failed to logout user with keycloakId: {}", keycloakId, e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to logout user", e);
         }
     }

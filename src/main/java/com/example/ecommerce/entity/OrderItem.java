@@ -24,7 +24,7 @@ public class OrderItem {
     @Column(name = DBConstants.COLUMN_QUANTITY)
     private int quantity;
 
-    @Column(name = DBConstants.COLUMN_PRICE) // Added price field
+    @Column(name = DBConstants.COLUMN_PRICE)
     private double price;
 
     @Column(name = DBConstants.COLUMN_CREATED_AT)

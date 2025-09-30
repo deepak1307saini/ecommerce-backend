@@ -12,7 +12,8 @@ import com.example.ecommerce.repository.ProductRepository;
 import com.example.ecommerce.service.OrderService;
 import com.example.ecommerce.service.ProductService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,8 +24,8 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class OrderServiceImpl implements OrderService {
+    private final Logger logger = LoggerFactory.getLogger(OrderServiceImpl.class);
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
@@ -40,13 +41,13 @@ public class OrderServiceImpl implements OrderService {
 
         OrderDTO orderDTO = toDTO(savedOrder);
         orderDTO.setItems(savedItems.stream().map(this::toItemDTO).collect(Collectors.toList()));
-        log.info("Order created with ID: {}", savedOrder.getId());
+        logger.info("Order created with ID: {}", savedOrder.getId());
         return orderDTO;
     }
 
     @Override
     public Page<OrderDTO> getOrderHistory(Long userId, Pageable pageable) {
-        log.info("Fetching order history for user ID: {}", userId);
+        logger.info("Fetching order history for user ID: {}", userId);
         return orderRepository.findByUserId(userId, pageable).map(this::toDTO);
     }
 
@@ -60,13 +61,13 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public OrderDTO getOrderById(Long id, Long userId) {
-        log.info("Fetching order with ID: {} for user ID: {}", id, userId);
+        logger.info("Fetching order with ID: {} for user ID: {}", id, userId);
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found with ID: " + id));
 
         // Validate that the order belongs to the user
         if (!order.getUserId().equals(userId)) {
-            log.warn("User ID: {} is not authorized to access order ID: {}", userId, id);
+            logger.warn("User ID: {} is not authorized to access order ID: {}", userId, id);
             throw new RuntimeException("Unauthorized to access this order");
         }
 
@@ -85,7 +86,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private Order saveOrder(Long userId, List<OrderItemDTO> items) {
-        log.info("Creating order for user ID: {}", userId);
+        logger.info("Creating order for user ID: {}", userId);
         double totalAmount = 0;
         int totalQuantity = 0;
 
@@ -93,7 +94,7 @@ public class OrderServiceImpl implements OrderService {
             Product product = productRepository.findById(itemDTO.getProductId())
                     .orElseThrow(() -> new RuntimeException("Product not found"));
             if (itemDTO.getQuantity() > product.getAvailableQuantity()) {
-                log.warn("Insufficient quantity for product: {}", product.getName());
+                logger.warn("Insufficient quantity for product: {}", product.getName());
                 throw new InsufficientStockException("Insufficient quantity for product: " + product.getName());
             }
             itemDTO.setPrice(product.getPrice());

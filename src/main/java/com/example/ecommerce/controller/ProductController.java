@@ -4,7 +4,8 @@ import com.example.ecommerce.dto.ProductDTO;
 import com.example.ecommerce.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +19,9 @@ import static java.util.Objects.nonNull;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-@Slf4j
 public class ProductController {
+    private final Logger logger = LoggerFactory.getLogger(ProductController.class);
+
 
     private final ProductService productService;
 
@@ -28,7 +30,7 @@ public class ProductController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String category,
             Pageable pageable) {
-        log.info("Fetching products with search: {}, category: {}", search, category);
+        logger.info("Fetching products with search: {}, category: {}", search, category);
         if (nonNull(search)) {
             return productService.searchByName(search, pageable);
         } else if (nonNull(category))    {
@@ -40,7 +42,7 @@ public class ProductController {
     @GetMapping("/tenant/{tenantName}/products")
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     public Page<ProductDTO> getTenantProducts(@PathVariable String tenantName, Pageable pageable) {
-        log.info("Fetching products for tenant: {}", tenantName);
+        logger.info("Fetching products for tenant: {}", tenantName);
         return productService.getByTenant(tenantName, pageable);
     }
 
@@ -49,9 +51,9 @@ public class ProductController {
     public ResponseEntity<ProductDTO> addProduct(
             @PathVariable String tenantName,
             @Valid @RequestPart("product") ProductDTO productDTO) throws IOException {
-        log.info("Adding product for tenant: {}", tenantName);
+        logger.info("Adding product for tenant: {}", tenantName);
         ProductDTO savedProduct = productService.save(productDTO, tenantName);
-        log.info("Product added: {}", productDTO.getName());
+        logger.info("Product added: {}", productDTO.getName());
         return ResponseEntity.ok(savedProduct);
     }
 
@@ -61,19 +63,19 @@ public class ProductController {
             @PathVariable String tenantName,
             @PathVariable Long id,
             @Valid @RequestPart("product") ProductDTO productDTO) throws IOException {
-        log.info("Updating product ID: {} for tenant: {}", id, tenantName);
+        logger.info("Updating product ID: {} for tenant: {}", id, tenantName);
         productDTO.setId(id);
         ProductDTO updatedProduct = productService.update(productDTO, tenantName);
-        log.info("Product updated: {}", updatedProduct.getName());
+        logger.info("Product updated: {}", updatedProduct.getName());
         return ResponseEntity.ok(updatedProduct);
     }
 
     @DeleteMapping("/tenant/{tenantName}/products/{id}")
     @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ResponseEntity<Void> deleteProduct(@PathVariable String tenantName, @PathVariable Long id) {
-        log.info("Deleting product ID: {} for tenant: {}", id, tenantName);
+        logger.info("Deleting product ID: {} for tenant: {}", id, tenantName);
         productService.delete(id, tenantName);
-        log.info("Product deleted: {}", id);
+        logger.info("Product deleted: {}", id);
         return ResponseEntity.ok().build();
     }
 }

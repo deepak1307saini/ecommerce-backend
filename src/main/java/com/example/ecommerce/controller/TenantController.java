@@ -9,7 +9,8 @@ import com.example.ecommerce.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,8 +23,8 @@ import static java.util.Objects.isNull;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-@Slf4j
 public class TenantController {
+    private final Logger logger = LoggerFactory.getLogger(TenantController.class);
 
     private final TenantService tenantService;
     private final UserService userService;
@@ -31,9 +32,9 @@ public class TenantController {
     @PostMapping("/tenants")
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<TenantDTO> createTenant(@Valid @RequestBody TenantRequest request) {
-        log.info("Creating tenant: {}", request.getName());
+        logger.info("Creating tenant: {}", request.getName());
         TenantDTO tenant = tenantService.createTenant(request.getName());
-        log.info("Tenant created with ID: {}", tenant.getId());
+        logger.info("Tenant created with ID: {}", tenant.getId());
         return ResponseEntity.ok(tenant);
     }
 
@@ -42,18 +43,18 @@ public class TenantController {
     public ResponseEntity<Page<TenantDTO>> getTenants(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size) {
-        log.info("Fetching tenants: page={}, size={}", page, size);
+        logger.info("Fetching tenants: page={}, size={}", page, size);
         Page<TenantDTO> tenants = tenantService.getTenants(page, size);
-        log.info("Fetched {} tenants", tenants.getTotalElements());
+        logger.info("Fetched {} tenants", tenants.getTotalElements());
         return ResponseEntity.ok(tenants);
     }
 
     @DeleteMapping("/tenants/{name}")
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<Void> deleteTenant(@PathVariable String name) {
-        log.info("Deleting tenant: {}", name);
+        logger.info("Deleting tenant: {}", name);
         tenantService.deleteTenant(name);
-        log.info("Tenant deleted: {}", name);
+        logger.info("Tenant deleted: {}", name);
         return ResponseEntity.ok().build();
     }
 
@@ -61,9 +62,9 @@ public class TenantController {
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<Void> createTenantAdmin(@Valid @RequestBody UserDTO request) {
         if(isNull(request.getTenantId())) throw new BadRequestException("tenantId can't be null");
-        log.info("Creating tenant admin: {}", request.getUsername());
+        logger.info("Creating tenant admin: {}", request.getUsername());
         userService.registerUser(request, RoleEnum.TENANT_ADMIN.toString());
-        log.info("Tenant admin created: {}", request.getUsername());
+        logger.info("Tenant admin created: {}", request.getUsername());
         return ResponseEntity.ok().build();
     }
 

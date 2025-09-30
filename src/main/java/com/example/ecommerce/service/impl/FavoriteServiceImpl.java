@@ -9,7 +9,8 @@ import com.example.ecommerce.repository.ProductRepository;
 import com.example.ecommerce.repository.UserRepository;
 import com.example.ecommerce.service.FavoriteService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -18,8 +19,8 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class FavoriteServiceImpl implements FavoriteService {
+    private final Logger logger = LoggerFactory.getLogger(FavoriteServiceImpl.class);
 
     private final FavoriteRepository favoriteRepository;
     private final ProductRepository productRepository;
@@ -27,7 +28,7 @@ public class FavoriteServiceImpl implements FavoriteService {
 
     @Override
     public FavoriteDTO addFavorite(Long userId, Long productId) {
-        log.info("Adding favorite for user ID: {} and product ID: {}", userId, productId);
+        logger.info("Adding favorite for user ID: {} and product ID: {}", userId, productId);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
@@ -37,7 +38,7 @@ public class FavoriteServiceImpl implements FavoriteService {
         // Check if favorite already exists to avoid duplicates
         Optional<Favorite> existingFavorite = favoriteRepository.findByUserIdAndProductId(userId, productId);
         if (existingFavorite.isPresent()) {
-            log.info("Favorite already exists for user ID: {} and product ID: {}", userId, productId);
+            logger.info("Favorite already exists for user ID: {} and product ID: {}", userId, productId);
             return toDTO(existingFavorite.get());
         }
 
@@ -46,23 +47,23 @@ public class FavoriteServiceImpl implements FavoriteService {
         favorite.setProduct(product);
 
         Favorite savedFavorite = favoriteRepository.save(favorite);
-        log.info("Favorite added with ID: {}, user ID: {} and product ID: {}.", savedFavorite.getId(),
+        logger.info("Favorite added with ID: {}, user ID: {} and product ID: {}.", savedFavorite.getId(),
                 savedFavorite.getUserId(), savedFavorite.getProductId());
         return toDTO(savedFavorite);
     }
 
     @Override
     public void removeFavorite(Long userId, Long productId) {
-        log.info("Removing favorite for user ID: {} and product ID: {}", userId, productId);
+        logger.info("Removing favorite for user ID: {} and product ID: {}", userId, productId);
         Favorite favorite = favoriteRepository.findByUserIdAndProductId(userId, productId)
                 .orElseThrow(() -> new RuntimeException("Favorite not found"));
         favoriteRepository.delete(favorite);
-        log.info("Favorite removed for user ID: {} and product ID: {}", userId, productId);
+        logger.info("Favorite removed for user ID: {} and product ID: {}", userId, productId);
     }
 
     @Override
     public Page<FavoriteDTO> getFavorites(Long userId, Pageable pageable) {
-        log.info("Fetching favorites for user ID: {}", userId);
+        logger.info("Fetching favorites for user ID: {}", userId);
         return favoriteRepository.findByUserId(userId, pageable)
                 .map(this::toDTO);
     }

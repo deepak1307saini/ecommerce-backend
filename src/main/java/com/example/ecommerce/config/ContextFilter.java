@@ -7,7 +7,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
@@ -22,10 +23,10 @@ import static java.util.Objects.isNull;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j
 public class ContextFilter extends OncePerRequestFilter {
-    private final UserService userService;
+    private final Logger logger = LoggerFactory.getLogger(ContextFilter.class);
 
+    private final UserService userService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -51,13 +52,13 @@ public class ContextFilter extends OncePerRequestFilter {
 
                 if (userId != null && userRole != null) {
                     Context.setContext(userId, userName, keycloakId, userRole, tenantId);
-                    log.info("Context set: userId={}, keycloakId={}, userRole={}", userId, keycloakId, userRole);
+                    logger.info("Context set: userId={}, keycloakId={}, userRole={}", userId, keycloakId, userRole);
                 } else {
-                    log.warn("Failed to set context: userId={}, keycloakId={}, userRole={}", userId, keycloakId, userRole);
+                    logger.warn("Failed to set context: userId={}, keycloakId={}, userRole={}", userId, keycloakId, userRole);
                 }
             }
         } catch (Exception e) {
-            log.error("Error setting context", e);
+            logger.error("Error setting context", e);
         }
 
         try {

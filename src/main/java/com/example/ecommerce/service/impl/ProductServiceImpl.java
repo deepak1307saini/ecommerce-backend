@@ -2,54 +2,49 @@ package com.example.ecommerce.service.impl;
 
 import com.example.ecommerce.dto.ProductDTO;
 import com.example.ecommerce.entity.Product;
-import com.example.ecommerce.entity.User;
 import com.example.ecommerce.repository.ProductRepository;
 import com.example.ecommerce.repository.TenantRepository;
 import com.example.ecommerce.service.ProductService;
-import com.example.ecommerce.service.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class ProductServiceImpl implements ProductService {
+    private final Logger logger = LoggerFactory.getLogger(ProductServiceImpl.class);
 
     private final ProductRepository productRepository;
     private final TenantRepository tenantRepository;
 
     @Override
     public Page<ProductDTO> getAll(Pageable pageable) {
-        log.info("Fetching all products, page: {}", pageable.getPageNumber());
+        logger.info("Fetching all products, page: {}", pageable.getPageNumber());
         return productRepository.findAll(pageable).map(this::toDTO);
     }
 
     @Override
     public Page<ProductDTO> searchByName(String name, Pageable pageable) {
-        log.info("Searching products by name: {}", name);
+        logger.info("Searching products by name: {}", name);
         return productRepository.findByNameContainingIgnoreCase(name, pageable).map(this::toDTO);
     }
 
     @Override
     public Page<ProductDTO> filterByCategory(String category, Pageable pageable) {
-        log.info("Filtering products by category: {}", category);
+        logger.info("Filtering products by category: {}", category);
         return productRepository.findByCategory(category, pageable).map(this::toDTO);
     }
 
     @Override
     public Page<ProductDTO> getByTenant(String tenantName, Pageable pageable) {
         Long tenantId = getTenantIdByName(tenantName);
-        log.info("Fetching products for tenant: {}", tenantName);
+        logger.info("Fetching products for tenant: {}", tenantName);
         return productRepository.findByTenantId(tenantId, pageable).map(this::toDTO);
     }
 
@@ -60,7 +55,7 @@ public class ProductServiceImpl implements ProductService {
         product.setTenantId(tenantId);
 
         Product savedProduct = productRepository.save(product);
-        log.info("Saved product: {}", savedProduct.getName());
+        logger.info("Saved product: {}", savedProduct.getName());
         return toDTO(savedProduct);
     }
 
@@ -71,7 +66,7 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(updatedProductDTO.getId())
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         if (!product.getTenantId().equals(tenantId)) {
-            log.warn("Unauthorized tenant access for product ID: {}", updatedProductDTO.getId());
+            logger.warn("Unauthorized tenant access for product ID: {}", updatedProductDTO.getId());
             throw new RuntimeException("Unauthorized tenant");
         }
         product.setName(updatedProductDTO.getName());
@@ -81,7 +76,7 @@ public class ProductServiceImpl implements ProductService {
         product.setDescription(updatedProductDTO.getDescription());
         product.setThumbnail(updatedProductDTO.getThumbnail());
         Product updatedProduct = productRepository.save(product);
-        log.info("Updated product: {}", updatedProduct.getName());
+        logger.info("Updated product: {}", updatedProduct.getName());
         return toDTO(updatedProduct);
     }
 
@@ -91,11 +86,11 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         if (!product.getTenantId().equals(tenantId)) {
-            log.warn("Unauthorized tenant access for product ID: {}", id);
+            logger.warn("Unauthorized tenant access for product ID: {}", id);
             throw new RuntimeException("Unauthorized tenant");
         }
         productRepository.deleteById(id);
-        log.info("Deleted product ID: {}", id);
+        logger.info("Deleted product ID: {}", id);
     }
 
     @Override

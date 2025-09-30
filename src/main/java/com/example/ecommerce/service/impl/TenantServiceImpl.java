@@ -10,7 +10,8 @@ import com.example.ecommerce.repository.TenantRepository;
 import com.example.ecommerce.repository.UserRepository;
 import com.example.ecommerce.service.TenantService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,45 +21,45 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class TenantServiceImpl implements TenantService {
+    private final Logger logger = LoggerFactory.getLogger(TenantServiceImpl.class);
 
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
 
     @Override
     public TenantDTO createTenant(String name) {
-        log.info("Creating tenant: {}", name);
+        logger.info("Creating tenant: {}", name);
         Tenant tenant = new Tenant();
         tenant.setName(name);
         Tenant savedTenant = tenantRepository.save(tenant);
-        log.info("Tenant created with ID: {}", savedTenant.getId());
+        logger.info("Tenant created with ID: {}", savedTenant.getId());
         return toDTO(savedTenant);
     }
 
     @Override
     public void deleteTenant(String name) {
-        log.info("Deleting tenant: {}", name);
+        logger.info("Deleting tenant: {}", name);
         Tenant tenant = tenantRepository.findByName(name)
                 .orElseThrow(() -> new RuntimeException("Tenant not found"));
         tenantRepository.delete(tenant);
-        log.info("Tenant deleted: {}", name);
+        logger.info("Tenant deleted: {}", name);
     }
 
     @Override
     public Page<TenantDTO> getTenants(int page, int size) {
-        log.info("Fetching tenants: page={}, size={}", page, size);
+        logger.info("Fetching tenants: page={}, size={}", page, size);
         Pageable pageable = PageRequest.of(page, size);
         Page<Tenant> tenantPage = tenantRepository.findAll(pageable);
-        log.info("Fetched {} tenants", tenantPage.getTotalElements());
+        logger.info("Fetched {} tenants", tenantPage.getTotalElements());
         return tenantPage.map(this::toDTO);
     }
 
     @Override
     public Page<UserDTO> getAllUsers(Pageable pageable) {
-        log.info("Fetching users with role TENANT_ADMIN: pageable={}", pageable);
+        logger.info("Fetching users with role TENANT_ADMIN: pageable={}", pageable);
         Page<User> users = userRepository.findUsersByRoleName(RoleEnum.TENANT_ADMIN.name(), pageable);
-        log.info("Fetched {} users with role TENANT_ADMIN", users.getTotalElements());
+        logger.info("Fetched {} users with role TENANT_ADMIN", users.getTotalElements());
         return users.map(this::toUserDTO);
     }
 

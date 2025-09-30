@@ -4,7 +4,6 @@ import com.example.ecommerce.dto.UserDTO;
 import com.example.ecommerce.service.KeyClockUserService;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.admin.client.resource.RolesResource;
@@ -13,6 +12,8 @@ import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -20,9 +21,10 @@ import java.util.Collections;
 import java.util.List;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class KeyClockUserServiceImpl implements KeyClockUserService {
+    private final Logger logger = LoggerFactory.getLogger(KeyClockUserServiceImpl.class);
+
     private final Keycloak keycloak;
 
     @Value("${keycloak.realm}")
@@ -38,7 +40,7 @@ public class KeyClockUserServiceImpl implements KeyClockUserService {
             Response response = usersResource.create(user);
 
             if (response.getStatus() != 201) {
-                log.error("Failed to create user in Keycloak: Status {}, Info: {}",
+                logger.error("Failed to create user in Keycloak: Status {}, Info: {}",
                         response.getStatus(), response.getStatusInfo());
                 throw new RuntimeException("Failed to create user in Keycloak: " + response.getStatusInfo());
             }
@@ -46,7 +48,7 @@ public class KeyClockUserServiceImpl implements KeyClockUserService {
             // Extract user ID
             String locationHeader = (String) response.getHeaders().getFirst("Location");
             String userId = locationHeader.substring(locationHeader.lastIndexOf('/') + 1);
-            log.info("User created with ID: {} and username: {}", userId, userDTO.getUsername());
+            logger.info("User created with ID: {} and username: {}", userId, userDTO.getUsername());
 
             // Assign role explicitly
             assignRole(userId, roleName);
@@ -57,15 +59,15 @@ public class KeyClockUserServiceImpl implements KeyClockUserService {
             boolean roleAssigned = assignedRoles.stream()
                     .anyMatch(role -> roleName.equals(role.getName()));
             if (roleAssigned) {
-                log.info("Role {} successfully assigned to user {}", roleName, userDTO.getUsername());
+                logger.info("Role {} successfully assigned to user {}", roleName, userDTO.getUsername());
             } else {
-                log.error("Failed to assign role {} to user {}", roleName, userDTO.getUsername());
+                logger.error("Failed to assign role {} to user {}", roleName, userDTO.getUsername());
                 throw new RuntimeException("Failed to assign role " + roleName + " to user");
             }
 
             return response;
         } catch (Exception e) {
-            log.error("Error creating user in Keycloak: {}", e.getMessage(), e);
+            logger.error("Error creating user in Keycloak: {}", e.getMessage(), e);
             throw new RuntimeException("Error creating user in Keycloak", e);
         }
     }
@@ -114,9 +116,9 @@ public class KeyClockUserServiceImpl implements KeyClockUserService {
             RolesResource rolesResource = getRolesResource();
             RoleRepresentation representation = getRoleRepresentation(userId, roleName, rolesResource);
             userResource.roles().realmLevel().add(Collections.singletonList(representation));
-            log.info("Role {} successfully assigned to user ID {}", roleName, userId);
+            logger.info("Role {} successfully assigned to user ID {}", roleName, userId);
         } catch (Exception e) {
-            log.error("Error assigning role {} to user ID {}: {}", roleName, userId, e.getMessage(), e);
+            logger.error("Error assigning role {} to user ID {}: {}", roleName, userId, e.getMessage(), e);
             throw new RuntimeException("Error assigning role " + roleName + " to user", e);
         }
     }
@@ -125,9 +127,9 @@ public class KeyClockUserServiceImpl implements KeyClockUserService {
         RoleRepresentation representation;
         try {
             representation = rolesResource.get(roleName).toRepresentation();
-            log.info("Assigning role {} (ID: {}) to user ID {}", roleName, representation.getId(), userId);
+            logger.info("Assigning role {} (ID: {}) to user ID {}", roleName, representation.getId(), userId);
         } catch (Exception e) {
-            log.error("Role {} not found in realm {}", roleName, realm, e);
+            logger.error("Role {} not found in realm {}", roleName, realm, e);
             throw new RuntimeException("Role " + roleName + " not found in Keycloak");
         }
         return representation;
